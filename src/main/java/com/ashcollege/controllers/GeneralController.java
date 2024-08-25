@@ -15,14 +15,9 @@ public class GeneralController {
     @Autowired
     private Persist persist;
 
-//    @RequestMapping(value = "/", method = {RequestMethod.GET, RequestMethod.POST})
-//    public Object hello() {
-//        return "Hello From Server";
-//    }
-
     @RequestMapping(value = "/", method = {RequestMethod.GET, RequestMethod.POST})
-    public Object test() {
-        return "test";
+    public Object hello() {
+        return "Hello From Server";
     }
 
     @RequestMapping(value = "/sign-up", method = {RequestMethod.POST})
