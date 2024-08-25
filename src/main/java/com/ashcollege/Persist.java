@@ -1,9 +1,9 @@
 package com.ashcollege;
 
 
-import com.ashcollege.entities.Client;
-import com.ashcollege.entities.Note;
 import com.ashcollege.entities.User;
+import com.ashcollege.responses.BasicResponse;
+import com.ashcollege.responses.UserResponse;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+import static com.ashcollege.utils.Errors.*;
 
 @Transactional
 @Component
@@ -46,34 +47,107 @@ public class Persist {
         return this.sessionFactory.getCurrentSession().createQuery("FROM User").list();
     }
 
-    public Client getClientByFirstName(String firstName) {
-        return (Client) this.sessionFactory.getCurrentSession().createQuery(
-                        "FROM Client WHERE firstName = :firstName")
-                .setParameter("firstName", firstName)
-                .setMaxResults(1)
-                .uniqueResult();
+    private boolean isUsernameAvailable(String username) {
+        User user = null;
+        if (username != null && !username.isEmpty()) {
+            user = (User) this.sessionFactory.getCurrentSession().createQuery(
+                            "FROM User WHERE username = :username")
+                    .setParameter("username", username)
+                    .uniqueResult();
+
+        }
+        return (user == null);
     }
 
-    public User login(String username, String password) {
-        return (User) this.sessionFactory.getCurrentSession().createQuery(
-                        "FROM User WHERE username = :username AND password = :password")
-                .setParameter("username", username)
-                .setParameter("password", password)
-                .setMaxResults(1)
-                .uniqueResult();
+    private boolean isEmailAvailable(String email) {
+        User user = null;
+        try {
+            user = (User) this.sessionFactory.getCurrentSession().createQuery(
+                            "FROM User WHERE email = :email")
+                    .setParameter("email", email)
+                    .uniqueResult();
+
+        }catch (Exception e) {
+            System.out.println("error:  " + e);
+        }
+        return (user == null);
     }
 
-    public List<Note> getNotes(String secret) {
-        return this.sessionFactory.getCurrentSession().createQuery(
-                        "FROM Note WHERE owner.secret = :secret")
-                .setParameter("secret", secret)
-                .list();
+    private boolean isEmailCorrect(String email) {
+        return email.contains("@") && email.contains(".") && (email.lastIndexOf(".") - email.indexOf("@") > 1) && (email.indexOf("@") != 0);
     }
 
-    public List<Note> getNotesByCollegeName (String collegeName) {
-        return this.sessionFactory.getCurrentSession().createQuery(
-                        "FROM Note WHERE owner.college.name = :collegeName")
-                .setParameter("collegeName", collegeName)
-                .list();
+    private boolean isPasswordStrong(String password) {
+        return password != null && password.length() >= 8;
+    }
+
+    public BasicResponse login(String email, String password) {
+        BasicResponse basicResponse;
+        Integer errorCode = null;
+        User user = null;
+
+            if (email != null && !email.isEmpty()) {
+            if (password != null && !password.isEmpty()) {
+                user = (User) this.sessionFactory.getCurrentSession().createQuery(
+                                "FROM User WHERE email = :email AND password = :password")
+                        .setParameter("email", email)
+                        .setParameter("password", password)
+                        .setMaxResults(1)
+                        .uniqueResult();
+
+            } else {
+                errorCode = ERROR_SIGN_UP_NO_PASSWORD;
+            }
+        } else {
+            errorCode = ERROR_SIGN_UP_NO_EMAIL;
+        }
+
+        if (user == null) {
+            if (errorCode == null) {
+                errorCode = ERROR_LOGIN_WRONG_CREDS;
+            }
+            basicResponse = new BasicResponse(false, errorCode);
+        } else {
+            basicResponse = new UserResponse(true, null, user);
+        }
+        return basicResponse;
+    }
+
+
+    public BasicResponse signUp(String username, String email, String password) {
+        Integer errorCode = null;
+        if (username != null && !username.isEmpty()) {
+            if (password != null && !password.isEmpty()) {
+                if (email != null && !email.isEmpty()) {
+                    if (isEmailCorrect(email)) {
+                        if (isUsernameAvailable(username)) {
+                            if (isPasswordStrong(password)) {
+                                if (isEmailAvailable(email)) {
+                                    System.out.println("here");
+                                    User user = new User(username, email, password);
+                                    save(user);
+                                    return new UserResponse(true, null, user);
+                                }else {
+                                    errorCode = EMAIL_ALREADY_IN_USE;
+                                }
+                            }else {
+                                errorCode = ERROR_WEAK_PASSWORD;
+                            }
+                        } else {
+                            errorCode = ERROR_SIGN_UP_USERNAME_TAKEN;
+                        }
+                    } else {
+                        errorCode = ERROR_EMAIL_FORMAT;
+                    }
+                } else {
+                    errorCode = ERROR_SIGN_UP_NO_EMAIL;
+                }
+            } else {
+                errorCode = ERROR_SIGN_UP_NO_PASSWORD;
+            }
+        } else {
+            errorCode = ERROR_SIGN_UP_NO_USERNAME;
+        }
+        return new BasicResponse(false, errorCode);
     }
 }

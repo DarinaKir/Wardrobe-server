@@ -25,7 +25,7 @@ public class AppConfig {
     public DataSource dataSource() throws Exception {
         ComboPooledDataSource dataSource = new ComboPooledDataSource();
         dataSource.setDriverClass("com.mysql.jdbc.Driver");
-        dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/ash2024?useSSL=false&allowPublicKeyRetrieval=true");
+        dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/wardrobe?useSSL=false&allowPublicKeyRetrieval=true");
         dataSource.setUser(DB_USERNAME);
         dataSource.setPassword(DB_PASSWORD);
         dataSource.setMaxPoolSize(20);

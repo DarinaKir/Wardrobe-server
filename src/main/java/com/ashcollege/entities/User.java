@@ -1,52 +1,25 @@
 package com.ashcollege.entities;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class User {
     private int id;
     private String username;
+    private String email;
     private String password;
-    private String secret;
-    private College college;
 
-    public User(int id, String username, String password) {
-        this(username, password);
+
+    public User () {
+
+    }
+
+    public User(int id) {
         this.id = id;
     }
 
-    public User(String username, String password) {
+    public User(String username, String email, String password) {
         this.username = username;
+        this.email = email;
         this.password = password;
-    }
-
-    public User() {
-
-    }
-
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public boolean isSameUsername (String username) {
-        return this.username.equals(username);
-    }
-
-    public boolean isSameCreds (String username, String password) {
-        return this.username.equals(username) && this.password.equals(password);
     }
 
     public int getId() {
@@ -57,19 +30,41 @@ public class User {
         this.id = id;
     }
 
-    public String getSecret() {
-        return secret;
+    public String getUsername() {
+        return username;
     }
 
-    public void setSecret(String secret) {
-        this.secret = secret;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
-    public College getCollege() {
-        return college;
+    public String getEmail() {
+        return email;
     }
 
-    public void setCollege(College college) {
-        this.college = college;
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    private boolean isEmailCorrect(String email) {
+        return email.contains("@") && email.contains(".") && (email.lastIndexOf(".") - email.indexOf("@") > 1) && (email.indexOf("@") != 0);
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
+                ", password='" + password + '\'' +
+                '}';
     }
 }

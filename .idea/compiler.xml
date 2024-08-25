@@ -7,8 +7,10 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="template" />
-        <module name="templateServer" />
         <module name="ashcollege" />
+        <module name="templateServer - Copy" />
+        <module name="templateServer" />
+        <module name="templateServer - Copy - Copy" />
       </profile>
     </annotationProcessing>
   </component>
@@ -17,6 +19,8 @@
       <module name="ashcollege" options="-parameters" />
       <module name="template" options="-parameters" />
       <module name="templateServer" options="-parameters" />
+      <module name="templateServer - Copy" options="-parameters" />
+      <module name="templateServer - Copy - Copy" options="-parameters" />
     </option>
   </component>
 </project>
