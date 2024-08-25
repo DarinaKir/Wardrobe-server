@@ -12,7 +12,4 @@ public class Errors {
     public static final int ERROR_WEAK_PASSWORD = 9;
     public static final int ERROR_NO_SUCH_USER = 10;
 
-
-
-
 }
