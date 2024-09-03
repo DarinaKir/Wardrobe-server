@@ -43,7 +43,7 @@ public class Persist {
 
     private final SessionFactory sessionFactory;
 
-    private final String API_KEY = "sk-8bAj76MYAZ0qeJu3U8G-hVpmxFBCNVOMfXNAMjBYZ8T3BlbkFJXu8ZgUF_Q7pRqen1tK0K06Cr2XyuKqf1TEysahp0EA";
+    private final String API_KEY = "";
     private final String API_URL = "https://api.openai.com/v1/chat/completions";
     private final List<OutfitItem> outfits = new ArrayList<>();
 
