@@ -171,16 +171,7 @@ public class Persist {
         return new BasicResponse(false, errorCode);
     }
 
-    private List<String> getSeasonArray(String season) {
-        List<String> seasons = new ArrayList<>();
-        if (season.equals("all") || season.equals("all season")) {
-            seasons = List.of("winter", "spring", "summer", "fall");
-        }else {
-            String[] splitSeasons = season.split("/");
-            seasons = Arrays.asList(splitSeasons);
-        }
-        return seasons;
-    }
+
 
     private List<OutfitItem> parseOutfitJson(JsonObject outfitSuggestionJson) {
         List<OutfitItem> outfitItems = new LinkedList<>();
@@ -233,7 +224,7 @@ public class Persist {
                                     outfitItem.setColor(cell.getStringCellValue());
                                     break;
                                 case 4:
-                                    outfitItem.setSeason(getSeasonArray(cell.getStringCellValue()));
+                                    outfitItem.setSeason(cell.getStringCellValue());
                                     break;
                                 case 5:
                                     outfitItem.setDescription(cell.getStringCellValue());
@@ -266,7 +257,7 @@ public class Persist {
 
             //makes smaller JsonArray for each outfitItem's seasons
             JsonArray seasonsArray = new JsonArray();
-            for (String season : outfitItem.getSeason()) {
+            for (String season : outfitItem.getSeasonArray(outfitItem.getSeason())) {
                 seasonsArray.add(season);
             }
             jsonObject.add("seasons", seasonsArray);
@@ -280,7 +271,7 @@ public class Persist {
                 "model", "gpt-4o",
                 "messages", List.of(
                         Map.of("role", "system", "content", "You are a helpful assistant."),
-                        Map.of("role", "user", "content", "You are a stylist. Choose 3 outfits (each must include either a top, bottom, or dress, plus shoes; bag and other accessories are optional) for" + answer + "from the following items. Ensure the colors match. Return a JsonArray with each outfit as a JsonObject. Use the following naming convention for the item IDs in the JSON: \"top\", \"bottom\", \"dress\", \"shoes\", \"accessory\". Each outfit should also include an explanation for your choices. Only include the IDs and explanation in the JSON: " + clothes
+                        Map.of("role", "user", "content", "You are a stylist. Choose 3 outfits (each must include either a top, bottom, or dress, plus shoes; bag and other accessories are optional) to suit" + answer + "from the following items. Ensure the colors match. Return a JsonArray with each outfit as a JsonObject. Use the following naming convention for the item IDs in the JSON: \"top\", \"bottom\", \"dress\", \"shoes\", \"accessory\". Each outfit should also include an explanation for your choices. Only include the IDs and explanation in the JSON: " + clothes
                         )
                 )
 
@@ -331,6 +322,7 @@ public class Persist {
                     outfitSuggestions.add(outfitSuggestion);
                 }
                 //PRINTS OUTFIT SUGGESTION ARRAY !!! :)
+                System.out.println("outfit Suggestions:  ");
                 for (OutfitSuggestion outfitSuggestion : outfitSuggestions) {
                     System.out.println(outfitSuggestion);
                     System.out.println(" ");
@@ -348,4 +340,6 @@ public class Persist {
     public List<OutfitItem> getOutfits() {
         return outfits;
     }
+
+
 }

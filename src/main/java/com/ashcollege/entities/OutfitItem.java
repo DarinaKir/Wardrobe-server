@@ -1,20 +1,24 @@
 package com.ashcollege.entities;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class OutfitItem {
     private int id;
+    private User user;
+    private String name;
     private String type;
     private String style;
     private String color;
-    private List<String> season;
+    private String season;
     private String description;
 
     public OutfitItem(int id) {
         this.id = id;
     }
 
-    public OutfitItem(int id, String type, String style, String color, List<String> season, String description) {
+    public OutfitItem(int id, String type, String style, String color, String season, String description) {
         this.id = id;
         this.type = type;
         this.style = style;
@@ -55,11 +59,12 @@ public class OutfitItem {
         this.color = color;
     }
 
-    public List<String> getSeason() {
+
+    public String getSeason() {
         return season;
     }
 
-    public void setSeason(List<String> season) {
+    public void setSeason(String season) {
         this.season = season;
     }
 
@@ -69,6 +74,33 @@ public class OutfitItem {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public List<String> getSeasonArray(String season) {
+        List<String> seasons = new ArrayList<>();
+        if (season.equals("all") || season.equals("all season")) {
+            seasons = List.of("winter", "spring", "summer", "fall");
+        }else {
+            String[] splitSeasons = season.split("/");
+            seasons = Arrays.asList(splitSeasons);
+        }
+        return seasons;
     }
 
     @Override
