@@ -4,12 +4,17 @@ import com.ashcollege.Persist;
 import com.ashcollege.entities.OutfitItem;
 import com.ashcollege.entities.OutfitSuggestion;
 import com.ashcollege.responses.BasicResponse;
+
+import okhttp3.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.PostConstruct;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -46,5 +51,10 @@ public class GeneralController {
     @RequestMapping(value = "/login", method = {RequestMethod.POST})
     public BasicResponse login(String email, String password) {
         return persist.login(email, password);
+    }
+
+    @RequestMapping(value = "/upload-image", method = {RequestMethod.GET, RequestMethod.POST})
+    public void UploadImageToImgur(String uri) throws Exception {
+        persist.uploadImageToImgur(uri);
     }
 }

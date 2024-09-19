@@ -5,15 +5,22 @@ import com.ashcollege.entities.OutfitItem;
 import com.ashcollege.entities.OutfitSuggestion;
 import com.ashcollege.entities.User;
 import com.ashcollege.responses.BasicResponse;
+import com.ashcollege.responses.ImgurUploadResponse;
 import com.ashcollege.responses.UserResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.*;
+import okhttp3.MediaType;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -21,6 +28,9 @@ import java.util.List;
 
 import com.google.gson.*;
 import org.apache.poi.ss.usermodel.*;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -348,4 +358,104 @@ public class Persist {
     public List<OutfitItem> getOutfits() {
         return outfits;
     }
+
+//    public static ImgurUploadResponse uploadToImgur(MultipartFile file) {
+//        ImgurUploadResponse uploadResponse = null;
+//        try {
+//            if (file != null) {
+//                ByteArrayResource imageResource = new ByteArrayResource(file.getBytes()) {
+//                    @Override
+//                    public String getFilename() {
+//                        return file.getOriginalFilename();
+//                    }
+//                };
+//                //LOGGER.log("IMGUR 2");
+//                uploadResponse = uploadImage(imageResource);
+//            }
+//        } catch (IOException ioe) {
+//            //LOGGER.log("IOException occurred: " + ioe.getMessage());
+//            ioe.printStackTrace();
+//        } catch (Exception e) {
+//            //LOGGER.log("Exception occurred: " + e.getMessage());
+//            e.printStackTrace();
+//        }
+//        return uploadResponse;
+//    }
+//
+//    private static ImgurUploadResponse uploadImage(ByteArrayResource imageResource) {
+//        ImgurUploadResponse uploadResponse = null;
+//        try {
+//            final String IMGUR_CLIENT_ID = ConfigUtils.getConfig(ConfigEnum.imgur_client_id, "");
+//            HttpHeaders headers = new HttpHeaders();
+//            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+//            headers.set(AUTHORIZATION, "Client-ID " + IMGUR_CLIENT_ID);
+//            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+//            body.add(PARAM_IMAGE, imageResource);
+//            body.add(PARAM_TYPE, "file");
+//            body.add("privacy", "hidden");
+//            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+//            ResponseEntity<String> response = restTemplate.exchange(IMGUR_UPLOAD_URL, HttpMethod.POST, requestEntity, String.class);
+//            ObjectMapper objectMapper = new ObjectMapper();
+//            uploadResponse = objectMapper.readValue(response.getBody(), ImgurUploadResponse.class);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            LOGGER.log("Error occurred during image upload: {}", e.getMessage());
+//        }
+//        return uploadResponse;
+//    }
+
+    public void uploadImageToImgur(String uri) throws Exception {
+        System.out.println("Uploading image...");
+
+        OkHttpClient client = new OkHttpClient().newBuilder().build();
+
+        File file = uriToFile(uri);
+
+        if (!file.exists()) {
+            System.out.println("File not found: " + file.getAbsolutePath());
+            return;
+        }
+
+        RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("image", file.getName(),
+                        RequestBody.create(MediaType.parse("application/octet-stream"), file))
+                .addFormDataPart("type", "image")
+                .addFormDataPart("title", "Simple upload")
+                .addFormDataPart("description", "This is a simple image upload to Imgur")
+                .build();
+
+        Request request = new Request.Builder()
+                .url("https://api.imgur.com/3/image")
+                .method("POST", body)
+                .addHeader("Authorization", "Client-ID f2b3bf941b0bad6")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            System.out.println("Response Code: " + response.code());
+            System.out.println("Response Message: " + response.message());
+
+            if (response.isSuccessful()) {
+                System.out.println("Upload successful! Response body: ");
+                System.out.println(response.body().string());  // הדפסת גוף התגובה
+            } else {
+                System.out.println("Upload failed with response code: " + response.code());
+                System.out.println("Response body: " + response.body().string());
+            }
+        } catch (IOException e) {
+            System.out.println("Error during the upload process: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+    private File uriToFile(String uriString) {
+        try {
+            URI uri = new URI(uriString);
+            return new File(uri);
+        } catch (URISyntaxException e) {
+            System.err.println("Invalid URI: " + e.getMessage());
+            return null;
+        }
+    }
+
 }
