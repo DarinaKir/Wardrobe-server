@@ -42,6 +42,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+import java.io.*;
+import java.net.URL;
+
 import static com.ashcollege.utils.Errors.*;
 
 @Transactional
@@ -404,32 +407,42 @@ public class Persist {
 //        return uploadResponse;
 //    }
 
-    public void uploadImageToImgur(String uri) throws Exception {
+    public void uploadImageToImgur(String imageUrl) throws Exception {
         System.out.println("Uploading image...");
 
         OkHttpClient client = new OkHttpClient().newBuilder().build();
 
-        File file = uriToFile(uri);
+        // קריאת התמונה כ-InputStream
+        URL url = new URL(imageUrl);
+        InputStream inputStream = url.openStream();
 
-        if (!file.exists()) {
-            System.out.println("File not found: " + file.getAbsolutePath());
-            return;
+        // קריאת התמונה כ-ByteArray
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        byte[] data = new byte[1024];
+        int nRead;
+        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, nRead);
         }
+        buffer.flush();
+        byte[] imageBytes = buffer.toByteArray();
 
+        // יצירת גוף הבקשה עם ה-ByteArray
         RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
-                .addFormDataPart("image", file.getName(),
-                        RequestBody.create(MediaType.parse("application/octet-stream"), file))
-                .addFormDataPart("type", "image")
+                .addFormDataPart("image", "image.jpg",
+                        RequestBody.create(MediaType.parse("application/octet-stream"), imageBytes))
+                .addFormDataPart("type", "file")
                 .addFormDataPart("title", "Simple upload")
                 .addFormDataPart("description", "This is a simple image upload to Imgur")
                 .build();
 
+        // בניית הבקשה
         Request request = new Request.Builder()
                 .url("https://api.imgur.com/3/image")
                 .method("POST", body)
                 .addHeader("Authorization", "Client-ID f2b3bf941b0bad6")
                 .build();
 
+        // שליחת הבקשה
         try (Response response = client.newCall(request).execute()) {
             System.out.println("Response Code: " + response.code());
             System.out.println("Response Message: " + response.message());
@@ -450,6 +463,7 @@ public class Persist {
 
     private File uriToFile(String uriString) {
         try {
+            System.out.println("3");
             URI uri = new URI(uriString);
             return new File(uri);
         } catch (URISyntaxException e) {
