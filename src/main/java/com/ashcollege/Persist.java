@@ -407,42 +407,80 @@ public class Persist {
 //        return uploadResponse;
 //    }
 
-    public void uploadImageToImgur(String imageUrl) throws Exception {
+    public void uploadImageToImgur(String imageUri) throws Exception {
         System.out.println("Uploading image...");
 
         OkHttpClient client = new OkHttpClient().newBuilder().build();
 
-        // קריאת התמונה כ-InputStream
-        URL url = new URL(imageUrl);
-        InputStream inputStream = url.openStream();
+//        // קריאת התמונה כ-InputStream
+//        URL url = new URL(imageUrl);
+//        InputStream inputStream = url.openStream();
+//
+//        // קריאת התמונה כ-ByteArray
+//        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+//        byte[] data = new byte[1024];
+//        int nRead;
+//        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+//            buffer.write(data, 0, nRead);
+//        }
+//        buffer.flush();
+//        byte[] imageBytes = buffer.toByteArray();
+//
+//        // יצירת גוף הבקשה עם ה-ByteArray
+//        RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
+//                .addFormDataPart("image", "image.jpg",
+//                        RequestBody.create(MediaType.parse("application/octet-stream"), imageBytes))
+//                .addFormDataPart("type", "file")
+//                .addFormDataPart("title", "Simple upload")
+//                .addFormDataPart("description", "This is a simple image upload to Imgur")
+//                .build();
+//
+//        // בניית הבקשה
+//        Request request = new Request.Builder()
+//                .url("https://api.imgur.com/3/image")
+//                .method("POST", body)
+//                .addHeader("Authorization", "Client-ID f2b3bf941b0bad6")
+//                .build();
+//
+//        // שליחת הבקשה
+//        try (Response response = client.newCall(request).execute()) {
+//            System.out.println("Response Code: " + response.code());
+//            System.out.println("Response Message: " + response.message());
+//
+//            if (response.isSuccessful()) {
+//                System.out.println("Upload successful! Response body: ");
+//                System.out.println(response.body().string());  // הדפסת גוף התגובה
+//            } else {
+//                System.out.println("Upload failed with response code: " + response.code());
+//                System.out.println("Response body: " + response.body().string());
+//            }
+//        } catch (IOException e) {
+//            System.out.println("Error during the upload process: " + e.getMessage());
+//            e.printStackTrace();
+//        }
+        String filePath = imageUri.replace("file:", "");
 
-        // קריאת התמונה כ-ByteArray
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        byte[] data = new byte[1024];
-        int nRead;
-        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, nRead);
+        File file = new File(filePath);  // השתמש בנתיב המלא
+
+        if (!file.exists()) {
+            System.out.println("File not found: " + file.getAbsolutePath());
+            return;
         }
-        buffer.flush();
-        byte[] imageBytes = buffer.toByteArray();
 
-        // יצירת גוף הבקשה עם ה-ByteArray
         RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
-                .addFormDataPart("image", "image.jpg",
-                        RequestBody.create(MediaType.parse("application/octet-stream"), imageBytes))
-                .addFormDataPart("type", "file")
+                .addFormDataPart("image", file.getName(),
+                        RequestBody.create(MediaType.parse("application/octet-stream"), file))
+                .addFormDataPart("type", "image")
                 .addFormDataPart("title", "Simple upload")
                 .addFormDataPart("description", "This is a simple image upload to Imgur")
                 .build();
 
-        // בניית הבקשה
         Request request = new Request.Builder()
                 .url("https://api.imgur.com/3/image")
                 .method("POST", body)
                 .addHeader("Authorization", "Client-ID f2b3bf941b0bad6")
                 .build();
 
-        // שליחת הבקשה
         try (Response response = client.newCall(request).execute()) {
             System.out.println("Response Code: " + response.code());
             System.out.println("Response Message: " + response.message());
