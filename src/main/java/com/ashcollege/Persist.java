@@ -246,7 +246,7 @@ public class Persist {
                                     outfitItem.setColor(cell.getStringCellValue());
                                     break;
                                 case 4:
-                                    outfitItem.setSeason(getSeasonArray(cell.getStringCellValue()));
+                                    outfitItem.setSeason(cell.getStringCellValue());
                                     break;
                                 case 5:
                                     outfitItem.setDescription(cell.getStringCellValue());
@@ -276,14 +276,7 @@ public class Persist {
             jsonObject.addProperty("type", outfitItem.getType());
             jsonObject.addProperty("style", outfitItem.getStyle());
             jsonObject.addProperty("color", outfitItem.getColor());
-
-            //makes smaller JsonArray for each outfitItem's seasons
-            JsonArray seasonsArray = new JsonArray();
-            for (String season : outfitItem.getSeason()) {
-                seasonsArray.add(season);
-            }
-            jsonObject.add("seasons", seasonsArray);
-
+            jsonObject.addProperty("season", outfitItem.getSeason());
             jsonObject.addProperty("description", outfitItem.getDescription());
             jsonArray.add(jsonObject);
         }
