@@ -5,22 +5,15 @@ import com.ashcollege.entities.OutfitItem;
 import com.ashcollege.entities.OutfitSuggestion;
 import com.ashcollege.entities.User;
 import com.ashcollege.responses.BasicResponse;
-import com.ashcollege.responses.ImgurUploadResponse;
 import com.ashcollege.responses.UserResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
-import okhttp3.MediaType;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -28,9 +21,6 @@ import java.util.List;
 
 import com.google.gson.*;
 import org.apache.poi.ss.usermodel.*;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -41,9 +31,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-
-import java.io.*;
-import java.net.URL;
 
 import static com.ashcollege.utils.Errors.*;
 
@@ -120,7 +107,7 @@ public class Persist {
         Integer errorCode = null;
         User user = null;
 
-            if (email != null && !email.isEmpty()) {
+        if (email != null && !email.isEmpty()) {
             if (password != null && !password.isEmpty()) {
                 user = (User) this.sessionFactory.getCurrentSession().createQuery(
                                 "FROM User WHERE email = :email AND password = :password")
@@ -184,16 +171,7 @@ public class Persist {
         return new BasicResponse(false, errorCode);
     }
 
-    private List<String> getSeasonArray(String season) {
-        List<String> seasons = new ArrayList<>();
-        if (season.equals("all") || season.equals("all season")) {
-            seasons = List.of("winter", "spring", "summer", "fall");
-        }else {
-            String[] splitSeasons = season.split("/");
-            seasons = Arrays.asList(splitSeasons);
-        }
-        return seasons;
-    }
+
 
     private List<OutfitItem> parseOutfitJson(JsonObject outfitSuggestionJson) {
         List<OutfitItem> outfitItems = new LinkedList<>();
@@ -246,7 +224,7 @@ public class Persist {
                                     outfitItem.setColor(cell.getStringCellValue());
                                     break;
                                 case 4:
-                                    outfitItem.setSeason(getSeasonArray(cell.getStringCellValue()));
+                                    outfitItem.setSeason(cell.getStringCellValue());
                                     break;
                                 case 5:
                                     outfitItem.setDescription(cell.getStringCellValue());
@@ -279,7 +257,7 @@ public class Persist {
 
             //makes smaller JsonArray for each outfitItem's seasons
             JsonArray seasonsArray = new JsonArray();
-            for (String season : outfitItem.getSeason()) {
+            for (String season : outfitItem.getSeasonArray(outfitItem.getSeason())) {
                 seasonsArray.add(season);
             }
             jsonObject.add("seasons", seasonsArray);
@@ -293,7 +271,7 @@ public class Persist {
                 "model", "gpt-4o",
                 "messages", List.of(
                         Map.of("role", "system", "content", "You are a helpful assistant."),
-                        Map.of("role", "user", "content", "You are a stylist. Choose 3 outfits (each must include either a top, bottom, or dress, plus shoes; bag and other accessories are optional) for" + answer + "from the following items. Ensure the colors match. Return a JsonArray with each outfit as a JsonObject. Use the following naming convention for the item IDs in the JSON: \"top\", \"bottom\", \"dress\", \"shoes\", \"accessory\". Each outfit should also include an explanation for your choices. Only include the IDs and explanation in the JSON: " + clothes
+                        Map.of("role", "user", "content", "You are a stylist. Choose 3 outfits (each must include either a top, bottom, or dress, plus shoes; bag and other accessories are optional) to suit" + answer + "from the following items. Ensure the colors match. Return a JsonArray with each outfit as a JsonObject. Use the following naming convention for the item IDs in the JSON: \"top\", \"bottom\", \"dress\", \"shoes\", \"accessory\". Each outfit should also include an explanation for your choices. Only include the IDs and explanation in the JSON: " + clothes
                         )
                 )
 
@@ -330,7 +308,7 @@ public class Persist {
             JsonObject firstChoice = choicesArray.get(0).getAsJsonObject();
             String content = firstChoice.getAsJsonObject("message").get("content").getAsString();
 
-            String cleanedContent = content.replaceAll("```json\\n|\\n```", "").replace("\\n", "\n");
+            String cleanedContent = content.replaceAll("json\\n|\\n", "").replace("\\n", "\n");
 
             try {
                 JsonArray outfitSuggestionsArray = JsonParser.parseString(cleanedContent).getAsJsonArray();
@@ -344,6 +322,7 @@ public class Persist {
                     outfitSuggestions.add(outfitSuggestion);
                 }
                 //PRINTS OUTFIT SUGGESTION ARRAY !!! :)
+                System.out.println("outfit Suggestions:  ");
                 for (OutfitSuggestion outfitSuggestion : outfitSuggestions) {
                     System.out.println(outfitSuggestion);
                     System.out.println(" ");
@@ -362,152 +341,5 @@ public class Persist {
         return outfits;
     }
 
-//    public static ImgurUploadResponse uploadToImgur(MultipartFile file) {
-//        ImgurUploadResponse uploadResponse = null;
-//        try {
-//            if (file != null) {
-//                ByteArrayResource imageResource = new ByteArrayResource(file.getBytes()) {
-//                    @Override
-//                    public String getFilename() {
-//                        return file.getOriginalFilename();
-//                    }
-//                };
-//                //LOGGER.log("IMGUR 2");
-//                uploadResponse = uploadImage(imageResource);
-//            }
-//        } catch (IOException ioe) {
-//            //LOGGER.log("IOException occurred: " + ioe.getMessage());
-//            ioe.printStackTrace();
-//        } catch (Exception e) {
-//            //LOGGER.log("Exception occurred: " + e.getMessage());
-//            e.printStackTrace();
-//        }
-//        return uploadResponse;
-//    }
-//
-//    private static ImgurUploadResponse uploadImage(ByteArrayResource imageResource) {
-//        ImgurUploadResponse uploadResponse = null;
-//        try {
-//            final String IMGUR_CLIENT_ID = ConfigUtils.getConfig(ConfigEnum.imgur_client_id, "");
-//            HttpHeaders headers = new HttpHeaders();
-//            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-//            headers.set(AUTHORIZATION, "Client-ID " + IMGUR_CLIENT_ID);
-//            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-//            body.add(PARAM_IMAGE, imageResource);
-//            body.add(PARAM_TYPE, "file");
-//            body.add("privacy", "hidden");
-//            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-//            ResponseEntity<String> response = restTemplate.exchange(IMGUR_UPLOAD_URL, HttpMethod.POST, requestEntity, String.class);
-//            ObjectMapper objectMapper = new ObjectMapper();
-//            uploadResponse = objectMapper.readValue(response.getBody(), ImgurUploadResponse.class);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            LOGGER.log("Error occurred during image upload: {}", e.getMessage());
-//        }
-//        return uploadResponse;
-//    }
-
-    public void uploadImageToImgur(String imageUri) throws Exception {
-        System.out.println("Uploading image...");
-
-        OkHttpClient client = new OkHttpClient().newBuilder().build();
-
-//        // קריאת התמונה כ-InputStream
-//        URL url = new URL(imageUrl);
-//        InputStream inputStream = url.openStream();
-//
-//        // קריאת התמונה כ-ByteArray
-//        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-//        byte[] data = new byte[1024];
-//        int nRead;
-//        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-//            buffer.write(data, 0, nRead);
-//        }
-//        buffer.flush();
-//        byte[] imageBytes = buffer.toByteArray();
-//
-//        // יצירת גוף הבקשה עם ה-ByteArray
-//        RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
-//                .addFormDataPart("image", "image.jpg",
-//                        RequestBody.create(MediaType.parse("application/octet-stream"), imageBytes))
-//                .addFormDataPart("type", "file")
-//                .addFormDataPart("title", "Simple upload")
-//                .addFormDataPart("description", "This is a simple image upload to Imgur")
-//                .build();
-//
-//        // בניית הבקשה
-//        Request request = new Request.Builder()
-//                .url("https://api.imgur.com/3/image")
-//                .method("POST", body)
-//                .addHeader("Authorization", "Client-ID f2b3bf941b0bad6")
-//                .build();
-//
-//        // שליחת הבקשה
-//        try (Response response = client.newCall(request).execute()) {
-//            System.out.println("Response Code: " + response.code());
-//            System.out.println("Response Message: " + response.message());
-//
-//            if (response.isSuccessful()) {
-//                System.out.println("Upload successful! Response body: ");
-//                System.out.println(response.body().string());  // הדפסת גוף התגובה
-//            } else {
-//                System.out.println("Upload failed with response code: " + response.code());
-//                System.out.println("Response body: " + response.body().string());
-//            }
-//        } catch (IOException e) {
-//            System.out.println("Error during the upload process: " + e.getMessage());
-//            e.printStackTrace();
-//        }
-        String filePath = imageUri.replace("file:", "");
-
-        File file = new File(filePath);  // השתמש בנתיב המלא
-
-        if (!file.exists()) {
-            System.out.println("File not found: " + file.getAbsolutePath());
-            return;
-        }
-
-        RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
-                .addFormDataPart("image", file.getName(),
-                        RequestBody.create(MediaType.parse("application/octet-stream"), file))
-                .addFormDataPart("type", "image")
-                .addFormDataPart("title", "Simple upload")
-                .addFormDataPart("description", "This is a simple image upload to Imgur")
-                .build();
-
-        Request request = new Request.Builder()
-                .url("https://api.imgur.com/3/image")
-                .method("POST", body)
-                .addHeader("Authorization", "Client-ID f2b3bf941b0bad6")
-                .build();
-
-        try (Response response = client.newCall(request).execute()) {
-            System.out.println("Response Code: " + response.code());
-            System.out.println("Response Message: " + response.message());
-
-            if (response.isSuccessful()) {
-                System.out.println("Upload successful! Response body: ");
-                System.out.println(response.body().string());  // הדפסת גוף התגובה
-            } else {
-                System.out.println("Upload failed with response code: " + response.code());
-                System.out.println("Response body: " + response.body().string());
-            }
-        } catch (IOException e) {
-            System.out.println("Error during the upload process: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-
-    private File uriToFile(String uriString) {
-        try {
-            System.out.println("3");
-            URI uri = new URI(uriString);
-            return new File(uri);
-        } catch (URISyntaxException e) {
-            System.err.println("Invalid URI: " + e.getMessage());
-            return null;
-        }
-    }
 
 }
