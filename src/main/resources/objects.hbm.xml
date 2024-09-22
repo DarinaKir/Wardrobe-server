@@ -13,7 +13,19 @@
     </class>
 
 
-
+    <class name="com.ashcollege.entities.OutfitItem" table="outfits" lazy="false">
+        <id name="id" type="int" column="id">
+            <generator class="native"/>
+        </id>
+        <many-to-one name="user" column="userId"
+                     class="com.ashcollege.entities.User"/>
+        <property name="name" type="string" column="name"/>
+        <property name="type" type="string" column="type"/>
+        <property name="style" type="string" column="style"/>
+        <property name="color" type="string" column="color"/>
+        <property name="season" type="string" column="season"/>
+        <property name="description" type="string" column="description"/>
+    </class>
     <!--    example2-->
     <!--    <many-to-one name="object" column="object_id"-->
     <!--                 class="com.ashcollege.entities.OtherClass"/>-->
