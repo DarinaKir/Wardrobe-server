@@ -4,26 +4,33 @@ import com.ashcollege.Persist;
 import com.ashcollege.entities.OutfitItem;
 import com.ashcollege.entities.OutfitSuggestion;
 import com.ashcollege.responses.BasicResponse;
-
 import okhttp3.*;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Base64;
+
+import okhttp3.OkHttpClient;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.IOException;
+import java.io.FileOutputStream;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.List;
 
 @RestController
 public class GeneralController {
+    private static final String IMGUR_CLIENT_ID = "f2b3bf941b0bad6";
+    private static final String IMGUR_UPLOAD_URL = "https://api.imgur.com/3/upload";
 
     @Autowired
     private Persist persist;
@@ -38,6 +45,19 @@ public class GeneralController {
 //        return "Hello From Server";
 //    }
 
+
+    @RequestMapping(value = "/sign-up", method = {RequestMethod.POST})
+    public BasicResponse signUp(String username, String email, String password) {
+        return persist.signUp(username, email, password);
+    }
+
+    @RequestMapping(value = "/login", method = {RequestMethod.POST})
+    public BasicResponse login(String email, String password) {
+        System.out.println("***SIGN-IN***");
+        return persist.login(email, password);
+    }
+
+
     @RequestMapping(value = "/get-outfit-items", method = {RequestMethod.GET})
     public List<OutfitItem> getOutfitItems() {
         return persist.getOutfits();
@@ -48,38 +68,69 @@ public class GeneralController {
         return persist.sendOutfitRequest(occasion);
     }
 
-    @RequestMapping(value = "/sign-up", method = {RequestMethod.POST})
-    public BasicResponse signUp(String username, String email, String password) {
-            return persist.signUp(username, email, password);
-    }
-
-    @RequestMapping(value = "/login", method = {RequestMethod.POST})
-    public BasicResponse login(String email, String password) {
-        return persist.login(email, password);
-    }
-
-    @RequestMapping(value = "/upload-image", method = {RequestMethod.GET, RequestMethod.POST})
-    public void UploadImageToImgur(String uri) throws Exception {
-        System.out.println(uri);
-        persist.uploadImageToImgur(uri);
-    }
-
-//    @RequestMapping(value = "/upload-image", method = {RequestMethod.POST})
-//    public ResponseEntity<String> uploadImage(@RequestParam("photo") MultipartFile file) {
-//        System.out.println("1");
-//        System.out.println("Received file: " + file.getOriginalFilename());
-//        // בדיקת סוג הקובץ
-//        System.out.println("File type: " + file.getContentType());
-//        // בדיקת גודל הקובץ
-//        System.out.println("File size: " + file.getSize());
+    @RequestMapping(value = "/upload", method = RequestMethod.POST)
+    public String uploadFile(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return "File is empty!";
+        }
+//        try {
+//            // שמירת הקובץ לתיקייה מקומית
+//            String filePath = "C:/uploads/" + file.getOriginalFilename();
+//            file.transferTo(new File(filePath));
 //
-//        if (file.isEmpty()) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("File is empty");
+//            return "File uploaded successfully: " + file.getOriginalFilename();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            return "File upload failed!";
 //        }
+        return "ok";
+    }
+
+
+    @PostMapping("/upload-image")
+    public ResponseEntity<String> uploadImage(@RequestParam("file") MultipartFile file,
+                                              @RequestParam("userId") int userId) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("File is missing");
+        }
+
+        System.out.println("User ID: " + userId);
+        System.out.println("File received: " + file.getOriginalFilename());
+
+        return (ResponseEntity<String>) persist.uploadImage(file,userId);
+    }
+
+    @RequestMapping(value = "/get-user-clothes", method = RequestMethod.POST)
+    public List<OutfitItem> getUserClothes(@RequestParam int userId) {
+        System.out.println(userId);
+        List<OutfitItem> outfitItems = persist.getUserOutfits(userId);
+        System.out.println(outfitItems.get(0));
+        return outfitItems;
+    }
+
+
+
+//    @RequestMapping(value = "/upload-image", method = RequestMethod.POST)
+//    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, @RequestParam("userId") int userId) throws Exception {
+//        System.out.println("OK");
+//        try {
+//            // חיתוך המאפיין userId
+//            System.out.println("User ID: " + userId);
 //
-//        // לעבד את הקובץ כאן
+//            // טיפול בקובץ שהתקבל
+//            String fileName = file.getOriginalFilename();
+//            System.out.println("Uploaded file: " + fileName);
 //
-//        return ResponseEntity.ok("Image uploaded successfully");
+//            // ביצוע פעולות נוספות
+//            return ResponseEntity.ok("File uploaded successfully. User ID: " + userId);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.status(500).body("Failed to upload file");
+//        }
+////        return persist.uploadImage(file,userId);
 //    }
+
+
+
 
 }

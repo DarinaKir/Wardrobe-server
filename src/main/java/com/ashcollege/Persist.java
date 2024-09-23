@@ -5,31 +5,29 @@ import com.ashcollege.entities.OutfitItem;
 import com.ashcollege.entities.OutfitSuggestion;
 import com.ashcollege.entities.User;
 import com.ashcollege.responses.BasicResponse;
-import com.ashcollege.responses.ImgurUploadResponse;
 import com.ashcollege.responses.UserResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
-import okhttp3.MediaType;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URISyntaxException;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import com.google.gson.*;
 import org.apache.poi.ss.usermodel.*;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -41,9 +39,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-
-import java.io.*;
-import java.net.URL;
 
 import static com.ashcollege.utils.Errors.*;
 
@@ -58,6 +53,8 @@ public class Persist {
 
     private static final String API_KEY = "";
     private static final String API_URL = "https://api.openai.com/v1/chat/completions";
+    private static final String OPENAI_API_KEY = "sk-DvaE8gS6zlDmvJWGgfSqHDGQJccodABROZTjX1ln4cT3BlbkFJG4cTOyRId6cpE9hixHubZyq_bdDw_xg_Kd_C_DrbQA";
+
     private final List<OutfitItem> outfits = new ArrayList<>();
 
     @Autowired
@@ -101,7 +98,7 @@ public class Persist {
                     .setParameter("email", email)
                     .uniqueResult();
 
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("error:  " + e);
         }
         return (user == null);
@@ -115,12 +112,30 @@ public class Persist {
         return password != null && password.length() >= 8;
     }
 
+    public User getUserById(int id) {
+        User user = null;
+        user = (User) this.sessionFactory.getCurrentSession().createQuery(
+                        "FROM User WHERE id = :id")
+                .setParameter("id", id)
+                .setMaxResults(1)
+                .uniqueResult();
+
+        return user;
+    }
+
+    public List<OutfitItem> getUserOutfits(int userId) {
+        return (List<OutfitItem>) this.sessionFactory.getCurrentSession().createQuery(
+                        "FROM OutfitItem WHERE userId = :userId")
+                .setParameter("userId", userId)
+                .list();
+    }
+
     public BasicResponse login(String email, String password) {
         BasicResponse basicResponse;
         Integer errorCode = null;
         User user = null;
 
-            if (email != null && !email.isEmpty()) {
+        if (email != null && !email.isEmpty()) {
             if (password != null && !password.isEmpty()) {
                 user = (User) this.sessionFactory.getCurrentSession().createQuery(
                                 "FROM User WHERE email = :email AND password = :password")
@@ -160,10 +175,10 @@ public class Persist {
                                     User user = new User(username, email, password);
                                     save(user);
                                     return new UserResponse(true, null, user);
-                                }else {
+                                } else {
                                     errorCode = EMAIL_ALREADY_IN_USE;
                                 }
-                            }else {
+                            } else {
                                 errorCode = ERROR_WEAK_PASSWORD;
                             }
                         } else {
@@ -184,16 +199,6 @@ public class Persist {
         return new BasicResponse(false, errorCode);
     }
 
-    private List<String> getSeasonArray(String season) {
-        List<String> seasons = new ArrayList<>();
-        if (season.equals("all") || season.equals("all season")) {
-            seasons = List.of("winter", "spring", "summer", "fall");
-        }else {
-            String[] splitSeasons = season.split("/");
-            seasons = Arrays.asList(splitSeasons);
-        }
-        return seasons;
-    }
 
     private List<OutfitItem> parseOutfitJson(JsonObject outfitSuggestionJson) {
         List<OutfitItem> outfitItems = new LinkedList<>();
@@ -220,7 +225,7 @@ public class Persist {
         return outfitItems;
     }
 
-    public void extractOutfitItemsFromExcel () {
+    public void extractOutfitItemsFromExcel() {
         String excelFilePath = "src/main/java/com/ashcollege/files/Classification of clothes.xlsx";
         int startRow = 1; // Start from row 2 (index 1)
         int endRow = 49;  // End at row 50 (index 49)
@@ -266,7 +271,7 @@ public class Persist {
         }
     }
 
-    public List<OutfitSuggestion> sendOutfitRequest (String answer) {
+    public List<OutfitSuggestion> sendOutfitRequest(String answer) {
         Gson gson = new Gson();
         JsonArray jsonArray = new JsonArray();
 
@@ -276,7 +281,14 @@ public class Persist {
             jsonObject.addProperty("type", outfitItem.getType());
             jsonObject.addProperty("style", outfitItem.getStyle());
             jsonObject.addProperty("color", outfitItem.getColor());
-            jsonObject.addProperty("season", outfitItem.getSeason());
+
+            //makes smaller JsonArray for each outfitItem's seasons
+            JsonArray seasonsArray = new JsonArray();
+            for (String season : outfitItem.getSeasonArray(outfitItem.getSeason())) {
+                seasonsArray.add(season);
+            }
+            jsonObject.add("seasons", seasonsArray);
+
             jsonObject.addProperty("description", outfitItem.getDescription());
             jsonArray.add(jsonObject);
         }
@@ -286,7 +298,7 @@ public class Persist {
                 "model", "gpt-4o",
                 "messages", List.of(
                         Map.of("role", "system", "content", "You are a helpful assistant."),
-                        Map.of("role", "user", "content", "You are a stylist. Choose 3 outfits (each must include either a top, bottom, or dress, plus shoes; bag and other accessories are optional) for" + answer + "from the following items. Ensure the colors match. Return a JsonArray with each outfit as a JsonObject. Use the following naming convention for the item IDs in the JSON: \"top\", \"bottom\", \"dress\", \"shoes\", \"accessory\". Each outfit should also include an explanation for your choices. Only include the IDs and explanation in the JSON: " + clothes
+                        Map.of("role", "user", "content", "You are a stylist. Choose 3 outfits (each must include either a top, bottom, or dress, plus shoes; bag and other accessories are optional) to suit" + answer + "from the following items. Ensure the colors match. Return a JsonArray with each outfit as a JsonObject. Use the following naming convention for the item IDs in the JSON: \"top\", \"bottom\", \"dress\", \"shoes\", \"accessory\". Each outfit should also include an explanation for your choices. Only include the IDs and explanation in the JSON: " + clothes
                         )
                 )
 
@@ -337,6 +349,7 @@ public class Persist {
                     outfitSuggestions.add(outfitSuggestion);
                 }
                 //PRINTS OUTFIT SUGGESTION ARRAY !!! :)
+                System.out.println("outfit Suggestions:  ");
                 for (OutfitSuggestion outfitSuggestion : outfitSuggestions) {
                     System.out.println(outfitSuggestion);
                     System.out.println(" ");
@@ -355,109 +368,62 @@ public class Persist {
         return outfits;
     }
 
-//    public static ImgurUploadResponse uploadToImgur(MultipartFile file) {
-//        ImgurUploadResponse uploadResponse = null;
-//        try {
-//            if (file != null) {
-//                ByteArrayResource imageResource = new ByteArrayResource(file.getBytes()) {
-//                    @Override
-//                    public String getFilename() {
-//                        return file.getOriginalFilename();
-//                    }
-//                };
-//                //LOGGER.log("IMGUR 2");
-//                uploadResponse = uploadImage(imageResource);
-//            }
-//        } catch (IOException ioe) {
-//            //LOGGER.log("IOException occurred: " + ioe.getMessage());
-//            ioe.printStackTrace();
-//        } catch (Exception e) {
-//            //LOGGER.log("Exception occurred: " + e.getMessage());
-//            e.printStackTrace();
-//        }
-//        return uploadResponse;
-//    }
-//
-//    private static ImgurUploadResponse uploadImage(ByteArrayResource imageResource) {
-//        ImgurUploadResponse uploadResponse = null;
-//        try {
-//            final String IMGUR_CLIENT_ID = ConfigUtils.getConfig(ConfigEnum.imgur_client_id, "");
-//            HttpHeaders headers = new HttpHeaders();
-//            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-//            headers.set(AUTHORIZATION, "Client-ID " + IMGUR_CLIENT_ID);
-//            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-//            body.add(PARAM_IMAGE, imageResource);
-//            body.add(PARAM_TYPE, "file");
-//            body.add("privacy", "hidden");
-//            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-//            ResponseEntity<String> response = restTemplate.exchange(IMGUR_UPLOAD_URL, HttpMethod.POST, requestEntity, String.class);
-//            ObjectMapper objectMapper = new ObjectMapper();
-//            uploadResponse = objectMapper.readValue(response.getBody(), ImgurUploadResponse.class);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            LOGGER.log("Error occurred during image upload: {}", e.getMessage());
-//        }
-//        return uploadResponse;
-//    }
+    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, int userId) {
+        System.out.println("userId: " + userId);
+        String imageURL = null;
+        try {
+            imageURL = uploadImageToImgur(file);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            // שמירה לקובץ זמני
+            File tempFile = convertMultipartFileToFile(file);
+            // ביצוע בקשה ל-OpenAI
+            String jsonResponse = uploadToOpenAI(tempFile);
+            System.out.println("jsonResponse: " + jsonResponse);
 
-    public void uploadImageToImgur(String imageUri) throws Exception {
+            String json = jsonResponse.substring(jsonResponse.indexOf("{") , jsonResponse.lastIndexOf("```"));
+
+            JSONObject jsonObject = new JSONObject(json);
+
+            // חילוץ כל מאפיין
+            String type = jsonObject.getString("type");
+            String style = jsonObject.getString("style");
+            String color = jsonObject.getString("color");
+            String season = jsonObject.getString("season");
+            String description = jsonObject.getString("description");
+
+            System.out.println("Type: " + type);
+            System.out.println("Style: " + style);
+            System.out.println("Color: " + color);
+            System.out.println("Season: " + season);
+            System.out.println("Description: " + description);
+
+
+            String name = imageURL.substring(imageURL.lastIndexOf('/') + 1, imageURL.lastIndexOf('.'));
+            OutfitItem outfitItem = new OutfitItem(getUserById(userId),name,type,style,color,season,description);
+            save(outfitItem);
+            // מחיקת הקובץ הזמני
+            tempFile.delete();
+
+            System.out.println("ResponseEntity.ok(imageUrl):  " + ResponseEntity.ok(jsonResponse));
+            return ResponseEntity.ok(jsonResponse);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error uploading image: " + e.getMessage());
+        }
+    }
+
+    public static String uploadImageToImgur(@RequestParam("file") MultipartFile Multipartfile) throws Exception {
+        String imageUrl = null;
         System.out.println("Uploading image...");
 
         OkHttpClient client = new OkHttpClient().newBuilder().build();
-
-//        // קריאת התמונה כ-InputStream
-//        URL url = new URL(imageUrl);
-//        InputStream inputStream = url.openStream();
-//
-//        // קריאת התמונה כ-ByteArray
-//        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-//        byte[] data = new byte[1024];
-//        int nRead;
-//        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-//            buffer.write(data, 0, nRead);
-//        }
-//        buffer.flush();
-//        byte[] imageBytes = buffer.toByteArray();
-//
-//        // יצירת גוף הבקשה עם ה-ByteArray
-//        RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
-//                .addFormDataPart("image", "image.jpg",
-//                        RequestBody.create(MediaType.parse("application/octet-stream"), imageBytes))
-//                .addFormDataPart("type", "file")
-//                .addFormDataPart("title", "Simple upload")
-//                .addFormDataPart("description", "This is a simple image upload to Imgur")
-//                .build();
-//
-//        // בניית הבקשה
-//        Request request = new Request.Builder()
-//                .url("https://api.imgur.com/3/image")
-//                .method("POST", body)
-//                .addHeader("Authorization", "Client-ID f2b3bf941b0bad6")
-//                .build();
-//
-//        // שליחת הבקשה
-//        try (Response response = client.newCall(request).execute()) {
-//            System.out.println("Response Code: " + response.code());
-//            System.out.println("Response Message: " + response.message());
-//
-//            if (response.isSuccessful()) {
-//                System.out.println("Upload successful! Response body: ");
-//                System.out.println(response.body().string());  // הדפסת גוף התגובה
-//            } else {
-//                System.out.println("Upload failed with response code: " + response.code());
-//                System.out.println("Response body: " + response.body().string());
-//            }
-//        } catch (IOException e) {
-//            System.out.println("Error during the upload process: " + e.getMessage());
-//            e.printStackTrace();
-//        }
-        String filePath = imageUri.replace("file:", "");
-
-        File file = new File(filePath);  // השתמש בנתיב המלא
+        File file = convertMultipartFileToFile(Multipartfile);
 
         if (!file.exists()) {
             System.out.println("File not found: " + file.getAbsolutePath());
-            return;
+            return "File not found";
         }
 
         RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
@@ -480,7 +446,26 @@ public class Persist {
 
             if (response.isSuccessful()) {
                 System.out.println("Upload successful! Response body: ");
-                System.out.println(response.body().string());  // הדפסת גוף התגובה
+                String jsonResponse = response.body().string();
+                System.out.println(jsonResponse);  // הדפסת גוף התגובה
+
+                try {
+                    // פרס את ה-JSON
+                    JSONObject jsonObject = new JSONObject(jsonResponse);
+
+                    // גש לאובייקט "data"
+                    JSONObject data = jsonObject.getJSONObject("data");
+
+                    // קבל את ה-URL מתוך המפתח "link"
+                    imageUrl = data.getString("link");
+
+                    // הדפס את ה-URL
+                    System.out.println("Image URL: " + imageUrl);
+                    return imageUrl;
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
+
             } else {
                 System.out.println("Upload failed with response code: " + response.code());
                 System.out.println("Response body: " + response.body().string());
@@ -489,18 +474,63 @@ public class Persist {
             System.out.println("Error during the upload process: " + e.getMessage());
             e.printStackTrace();
         }
+        return imageUrl;
     }
 
 
-    private File uriToFile(String uriString) {
-        try {
-            System.out.println("3");
-            URI uri = new URI(uriString);
-            return new File(uri);
-        } catch (URISyntaxException e) {
-            System.err.println("Invalid URI: " + e.getMessage());
-            return null;
+    private String uploadToOpenAI(File file) throws IOException {
+        OkHttpClient client = new OkHttpClient();
+
+        // המרת הקובץ ל-Base64
+        byte[] fileContent = Files.readAllBytes(file.toPath());
+        String base64Image = Base64.getEncoder().encodeToString(fileContent);
+        String dataUrl = "data:image/png;base64," + base64Image;
+
+        // יצירת ה-JSON לשליחה
+        JSONObject jsonContent = new JSONObject();
+        jsonContent.put("model", "gpt-4o");
+
+        JSONArray messagesArray = new JSONArray();
+        JSONObject messageObject = new JSONObject();
+        messageObject.put("role", "user");
+
+        JSONArray contentArray = new JSONArray();
+        contentArray.put(new JSONObject().put("type", "text").put("text", "return JSON with the features for the item in the image: type(shirt,pants...),style(elegant...),color,season and (short) description"));
+        contentArray.put(new JSONObject().put("type", "image_url").put("image_url", new JSONObject().put("url", dataUrl)));
+
+        messageObject.put("content", contentArray);
+        messagesArray.put(messageObject);
+        jsonContent.put("messages", messagesArray);
+
+        // בקשת POST ל-OpenAI
+        RequestBody body = RequestBody.create(
+                jsonContent.toString(),
+                MediaType.parse("application/json")
+        );
+
+        Request request = new Request.Builder()
+                .url("https://api.openai.com/v1/chat/completions")
+                .post(body)
+                .addHeader("Authorization", "Bearer " + OPENAI_API_KEY)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+                String responseBody = response.body().string();
+                JSONObject jsonResponse = new JSONObject(responseBody);
+                return jsonResponse.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content");
+            } else {
+                throw new IOException("Unexpected response code: " + response.code());
+            }
         }
+    }
+
+    public static File convertMultipartFileToFile(MultipartFile multipartFile) throws IOException {
+        File file = new File(System.getProperty("java.io.tmpdir") + "/" + multipartFile.getOriginalFilename());
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(multipartFile.getBytes());
+        }
+        return file;
     }
 
 }

@@ -14,6 +14,9 @@ public class OutfitItem {
     private String season;
     private String description;
 
+    public OutfitItem() {
+    }
+
     public OutfitItem(int id) {
         this.id = id;
     }
@@ -26,6 +29,17 @@ public class OutfitItem {
         this.season = season;
         this.description = description;
     }
+
+    public OutfitItem(User user, String name, String type, String style, String color, String season, String description) {
+        this.user = user;
+        this.name = name;
+        this.type = type;
+        this.style = style;
+        this.color = color;
+        this.season = season;
+        this.description = description;
+    }
+
 
     public int getId() {
         return id;
