@@ -4,33 +4,15 @@ import com.ashcollege.Persist;
 import com.ashcollege.entities.OutfitItem;
 import com.ashcollege.entities.OutfitSuggestion;
 import com.ashcollege.responses.BasicResponse;
-import okhttp3.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import javax.annotation.PostConstruct;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Base64;
-
-import okhttp3.OkHttpClient;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.File;
-import java.io.FileOutputStream;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.util.List;
 
 @RestController
 public class GeneralController {
-    private static final String IMGUR_CLIENT_ID = "f2b3bf941b0bad6";
-    private static final String IMGUR_UPLOAD_URL = "https://api.imgur.com/3/upload";
 
     @Autowired
     private Persist persist;

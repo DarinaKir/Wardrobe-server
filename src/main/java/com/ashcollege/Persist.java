@@ -51,6 +51,7 @@ public class Persist {
 
     private final SessionFactory sessionFactory;
 
+    private static final String IMGUR_CLIENT_ID = "f2b3bf941b0bad6";
     private static final String API_KEY = "";
     private static final String API_URL = "https://api.openai.com/v1/chat/completions";
     private static final String OPENAI_API_KEY = "sk-DvaE8gS6zlDmvJWGgfSqHDGQJccodABROZTjX1ln4cT3BlbkFJG4cTOyRId6cpE9hixHubZyq_bdDw_xg_Kd_C_DrbQA";
@@ -437,7 +438,7 @@ public class Persist {
         Request request = new Request.Builder()
                 .url("https://api.imgur.com/3/image")
                 .method("POST", body)
-                .addHeader("Authorization", "Client-ID f2b3bf941b0bad6")
+                .addHeader("Authorization", "Client-ID " + IMGUR_CLIENT_ID)
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
