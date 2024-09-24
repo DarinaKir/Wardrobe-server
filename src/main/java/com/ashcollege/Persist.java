@@ -39,6 +39,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.TimeUnit;
 
 import static com.ashcollege.utils.Errors.*;
 
@@ -52,7 +53,7 @@ public class Persist {
     private final SessionFactory sessionFactory;
 
     private static final String IMGUR_CLIENT_ID = "f2b3bf941b0bad6";
-    private static final String API_KEY = "";
+    private static final String API_KEY = "sk-074m2Hfs1I7ASffZGaL40-VtXcZffqysV_jtAPvnA-T3BlbkFJIRIY4MOxbyWIvxph5IoGMWKdNgMnPcOzCZUczRUkcA";
     private static final String API_URL = "https://api.openai.com/v1/chat/completions";
     private static final String OPENAI_API_KEY = "sk-DvaE8gS6zlDmvJWGgfSqHDGQJccodABROZTjX1ln4cT3BlbkFJG4cTOyRId6cpE9hixHubZyq_bdDw_xg_Kd_C_DrbQA";
 
@@ -419,7 +420,11 @@ public class Persist {
         String imageUrl = null;
         System.out.println("Uploading image...");
 
-        OkHttpClient client = new OkHttpClient().newBuilder().build();
+        // הגדרת זמן המתנה לחיבור ולקריאה
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS) // זמן המתנה לחיבור
+                .readTimeout(30, TimeUnit.SECONDS)    // זמן המתנה לקריאה
+                .build();
         File file = convertMultipartFileToFile(Multipartfile);
 
         if (!file.exists()) {

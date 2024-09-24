@@ -50,26 +50,27 @@ public class GeneralController {
         return persist.sendOutfitRequest(occasion);
     }
 
-    @RequestMapping(value = "/upload", method = RequestMethod.POST)
-    public String uploadFile(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            return "File is empty!";
-        }
-//        try {
-//            // שמירת הקובץ לתיקייה מקומית
-//            String filePath = "C:/uploads/" + file.getOriginalFilename();
-//            file.transferTo(new File(filePath));
-//
-//            return "File uploaded successfully: " + file.getOriginalFilename();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            return "File upload failed!";
+//    @RequestMapping(value = "/upload", method = RequestMethod.POST)
+//    public String uploadFile(@RequestParam("file") MultipartFile file) {
+//        if (file.isEmpty()) {
+//            return "File is empty!";
 //        }
-        return "ok";
-    }
+////        try {
+////            // שמירת הקובץ לתיקייה מקומית
+////            String filePath = "C:/uploads/" + file.getOriginalFilename();
+////            file.transferTo(new File(filePath));
+////
+////            return "File uploaded successfully: " + file.getOriginalFilename();
+////        } catch (IOException e) {
+////            e.printStackTrace();
+////            return "File upload failed!";
+////        }
+//        return "ok";
+//    }
 
 
-    @PostMapping("/upload-image")
+//    @PostMapping("/upload-image")
+    @RequestMapping(value = "/upload-image", method = RequestMethod.POST)
     public ResponseEntity<String> uploadImage(@RequestParam("file") MultipartFile file,
                                               @RequestParam("userId") int userId) {
         if (file.isEmpty()) {
