@@ -55,7 +55,7 @@ public class Persist {
     private static final String IMGUR_CLIENT_ID = "f2b3bf941b0bad6";
     private static final String API_KEY = "sk-074m2Hfs1I7ASffZGaL40-VtXcZffqysV_jtAPvnA-T3BlbkFJIRIY4MOxbyWIvxph5IoGMWKdNgMnPcOzCZUczRUkcA";
     private static final String API_URL = "https://api.openai.com/v1/chat/completions";
-    private static final String OPENAI_API_KEY = "sk-DvaE8gS6zlDmvJWGgfSqHDGQJccodABROZTjX1ln4cT3BlbkFJG4cTOyRId6cpE9hixHubZyq_bdDw_xg_Kd_C_DrbQA";
+    private static final String OPENAI_API_KEY = "";
 
     private final List<OutfitItem> outfits = new ArrayList<>();
 
