@@ -5,11 +5,13 @@ import com.ashcollege.entities.OutfitItem;
 import com.ashcollege.entities.OutfitSuggestion;
 import com.ashcollege.responses.BasicResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.PostConstruct;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class GeneralController {
@@ -91,29 +93,33 @@ public class GeneralController {
         return outfitItems;
     }
 
+    @PostMapping("/delete-image")
+    public ResponseEntity<String> deleteImage(@RequestBody Map<String, Integer> requestData) {
+//        int imageId = requestData.get("id");
+        Integer imageId = requestData.get("imageId");
+        if (imageId == null) {
+            return ResponseEntity.badRequest().body("Image ID is missing");
+        }
 
+        // Find the image in the database
+        OutfitItem outfitItem = persist.getOutfitById(imageId);
 
-//    @RequestMapping(value = "/upload-image", method = RequestMethod.POST)
-//    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, @RequestParam("userId") int userId) throws Exception {
-//        System.out.println("OK");
-//        try {
-//            // חיתוך המאפיין userId
-//            System.out.println("User ID: " + userId);
+        if (outfitItem != null) {
+            try {
+                persist.deleteOutfitByImageId(imageId);
+//                // Delete image from Imgur
+//                String deleteHash = outfitItem.getDeleteHash(); // You should store this in your database
+//                persist.deleteImageFromImgur(deleteHash);
 //
-//            // טיפול בקובץ שהתקבל
-//            String fileName = file.getOriginalFilename();
-//            System.out.println("Uploaded file: " + fileName);
-//
-//            // ביצוע פעולות נוספות
-//            return ResponseEntity.ok("File uploaded successfully. User ID: " + userId);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return ResponseEntity.status(500).body("Failed to upload file");
-//        }
-////        return persist.uploadImage(file,userId);
-//    }
+//                // Remove from the database
+//                outfitItemRepository.delete(outfitItem);
 
-
-
-
+                return ResponseEntity.ok("Image deleted successfully");
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting image");
+            }
+        } else {
+            return ResponseEntity.badRequest().body("Image not found");
+        }
+    }
 }

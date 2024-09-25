@@ -13,6 +13,7 @@ public class OutfitItem {
     private String color;
     private String season;
     private String description;
+    private String deleteHash;
 
     public OutfitItem() {
     }

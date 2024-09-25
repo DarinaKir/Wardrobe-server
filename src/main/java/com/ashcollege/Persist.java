@@ -124,6 +124,24 @@ public class Persist {
         return user;
     }
 
+    public OutfitItem getOutfitById(int id) {
+        OutfitItem outfitItem = null;
+        outfitItem = (OutfitItem) this.sessionFactory.getCurrentSession().createQuery(
+                        "FROM OutfitItem WHERE id = :id")
+                .setParameter("id", id)
+                .setMaxResults(1)
+                .uniqueResult();
+
+        return outfitItem;
+    }
+
+    public void deleteOutfitByImageId(int id) {
+        this.sessionFactory.getCurrentSession().createQuery("DELETE FROM OutfitItem WHERE id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+    }
+
+
     public List<OutfitItem> getUserOutfits(int userId) {
         return (List<OutfitItem>) this.sessionFactory.getCurrentSession().createQuery(
                         "FROM OutfitItem WHERE userId = :userId")
@@ -532,6 +550,22 @@ public class Persist {
             fos.write(multipartFile.getBytes());
         }
         return file;
+    }
+
+    public void deleteImageFromImgur(String deleteHash) throws IOException {
+        OkHttpClient client = new OkHttpClient();
+
+        Request request = new Request.Builder()
+                .url("https://api.imgur.com/3/image/" + deleteHash)
+                .delete(null)
+                .addHeader("Authorization", "Client-ID " + IMGUR_CLIENT_ID)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Failed to delete image from Imgur");
+            }
+        }
     }
 
 }
