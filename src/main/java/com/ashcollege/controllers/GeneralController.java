@@ -19,10 +19,10 @@ public class GeneralController {
     @Autowired
     private Persist persist;
 
-    @PostConstruct
-    public void init() {
-        persist.extractOutfitItemsFromExcel();
-    }
+//    @PostConstruct
+//    public void init() {
+//        persist.extractOutfitItemsFromExcel();
+//    }
 
 //    @RequestMapping(value = "/", method = {RequestMethod.GET, RequestMethod.POST})
 //    public Object hello() {
@@ -42,15 +42,17 @@ public class GeneralController {
     }
 
 
-    @RequestMapping(value = "/get-outfit-items", method = {RequestMethod.GET})
-    public List<OutfitItem> getOutfitItems() {
-        return persist.getOutfits();
-    }
+//    @RequestMapping(value = "/get-outfit-items", method = {RequestMethod.GET})
+//    public List<OutfitItem> getOutfitItems() {
+//        return persist.getOutfits();
+//    }
 
     @RequestMapping(value = "/get-outfit-suggestions", method = {RequestMethod.GET, RequestMethod.POST})
-    public List<OutfitSuggestion> getOutfitSuggestions(String occasion) {
-        return persist.sendOutfitRequest(occasion);
+    public List<OutfitSuggestion> getOutfitSuggestions(String occasion, int userId, String style) {
+        System.out.println(occasion + "  -  " + userId);
+        return persist.sendOutfitRequest(occasion,userId,style);
     }
+
 
 //    @RequestMapping(value = "/upload", method = RequestMethod.POST)
 //    public String uploadFile(@RequestParam("file") MultipartFile file) {

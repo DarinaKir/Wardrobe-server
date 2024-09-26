@@ -9,6 +9,7 @@ import com.ashcollege.responses.UserResponse;
 import okhttp3.*;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +57,7 @@ public class Persist {
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
     private static final String OPENAI_API_KEY = "";
 
-    private final List<OutfitItem> outfits = new ArrayList<>();
+//    private final List<OutfitItem> outfits = new ArrayList<>();
 
     @Autowired
     public Persist(SessionFactory sf) {
@@ -219,7 +220,7 @@ public class Persist {
     }
 
 
-    private List<OutfitItem> parseOutfitJson(JsonObject outfitSuggestionJson) {
+    private List<OutfitItem> parseOutfitJson(JsonObject outfitSuggestionJson,int userId) {
         List<OutfitItem> outfitItems = new LinkedList<>();
         for (String key : outfitSuggestionJson.keySet()) {
             if (!key.equals("explanation")) {
@@ -228,7 +229,7 @@ public class Persist {
                 // Assuming all IDs are integers
                 int id = element.getAsInt();
 
-                OutfitItem outfit = outfits.stream()
+                OutfitItem outfit = getUserOutfits(userId).stream()
                         .filter(item -> item.getId() == id)
                         .findFirst()
                         .orElse(null);
@@ -244,80 +245,70 @@ public class Persist {
         return outfitItems;
     }
 
-    public void extractOutfitItemsFromExcel() {
-        String excelFilePath = "src/main/java/com/ashcollege/files/Classification of clothes.xlsx";
-        int startRow = 1; // Start from row 2 (index 1)
-        int endRow = 49;  // End at row 50 (index 49)
-        try (FileInputStream fileInputStream = new FileInputStream(new File(excelFilePath));
-             Workbook workbook = WorkbookFactory.create(fileInputStream)) {
-            Sheet sheet = workbook.getSheetAt(0);
-            // Iterate over the rows from startRow to endRow
-            for (int i = startRow; i <= endRow && i <= sheet.getLastRowNum(); i++) {
-                Row row = sheet.getRow(i);
-                if (row != null) {
-                    OutfitItem outfitItem = new OutfitItem(i);
-                    for (int j = 1; j < 6; j++) {
-                        Cell cell = row.getCell(j);
-                        if (cell != null) {
-                            switch (j) {
-                                case 1:
-                                    outfitItem.setType(cell.getStringCellValue());
-                                    break;
-                                case 2:
-                                    outfitItem.setStyle(cell.getStringCellValue());
-                                    break;
-                                case 3:
-                                    outfitItem.setColor(cell.getStringCellValue());
-                                    break;
-                                case 4:
-                                    outfitItem.setSeason(cell.getStringCellValue());
-                                    break;
-                                case 5:
-                                    outfitItem.setDescription(cell.getStringCellValue());
-                                    break;
-                            }
-                        }
-                    }
-                    outfits.add(outfitItem);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        System.out.println("Values in the sixth column from row " + (startRow + 1) + " to row " + (endRow + 1) + ":");
-        for (OutfitItem outfitItem : outfits) {
-            System.out.println(outfitItem);
-        }
-    }
 
-    public List<OutfitSuggestion> sendOutfitRequest(String answer) {
+//    public void extractOutfitItemsFromExcel() {
+//        String excelFilePath = "src/main/java/com/ashcollege/files/Classification of clothes.xlsx";
+//        int startRow = 1; // Start from row 2 (index 1)
+//        int endRow = 49;  // End at row 50 (index 49)
+//        try (FileInputStream fileInputStream = new FileInputStream(new File(excelFilePath));
+//             Workbook workbook = WorkbookFactory.create(fileInputStream)) {
+//            Sheet sheet = workbook.getSheetAt(0);
+//            // Iterate over the rows from startRow to endRow
+//            for (int i = startRow; i <= endRow && i <= sheet.getLastRowNum(); i++) {
+//                Row row = sheet.getRow(i);
+//                if (row != null) {
+//                    OutfitItem outfitItem = new OutfitItem(i);
+//                    for (int j = 1; j < 6; j++) {
+//                        Cell cell = row.getCell(j);
+//                        if (cell != null) {
+//                            switch (j) {
+//                                case 1:
+//                                    outfitItem.setType(cell.getStringCellValue());
+//                                    break;
+//                                case 2:
+//                                    outfitItem.setStyle(cell.getStringCellValue());
+//                                    break;
+//                                case 3:
+//                                    outfitItem.setColor(cell.getStringCellValue());
+//                                    break;
+//                                case 4:
+//                                    outfitItem.setSeason(cell.getStringCellValue());
+//                                    break;
+//                                case 5:
+//                                    outfitItem.setDescription(cell.getStringCellValue());
+//                                    break;
+//                            }
+//                        }
+//                    }
+//                    outfits.add(outfitItem);
+//                }
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        System.out.println("Values in the sixth column from row " + (startRow + 1) + " to row " + (endRow + 1) + ":");
+//        for (OutfitItem outfitItem : outfits) {
+//            System.out.println(outfitItem);
+//        }
+//    }
+
+    public List<OutfitSuggestion> sendOutfitRequest(String occasion,int userId, String style) {
         Gson gson = new Gson();
         JsonArray jsonArray = new JsonArray();
 
-        for (OutfitItem outfitItem : outfits) {
-            JsonObject jsonObject = new JsonObject();
-            jsonObject.addProperty("id", outfitItem.getId());
-            jsonObject.addProperty("type", outfitItem.getType());
-            jsonObject.addProperty("style", outfitItem.getStyle());
-            jsonObject.addProperty("color", outfitItem.getColor());
-
-            //makes smaller JsonArray for each outfitItem's seasons
-            JsonArray seasonsArray = new JsonArray();
-            for (String season : outfitItem.getSeasonArray(outfitItem.getSeason())) {
-                seasonsArray.add(season);
-            }
-            jsonObject.add("seasons", seasonsArray);
-
-            jsonObject.addProperty("description", outfitItem.getDescription());
+        List<OutfitItem> outfitItems = getUserOutfits(userId);
+        for (OutfitItem outfitItem : outfitItems) {
+            JsonObject jsonObject = getJsonObject(outfitItem);
             jsonArray.add(jsonObject);
         }
         String clothes = gson.toJson(jsonArray);
 
+        System.out.println(style);
         String requestPayload = gson.toJson(Map.of(
                 "model", "gpt-4o",
                 "messages", List.of(
                         Map.of("role", "system", "content", "You are a helpful assistant."),
-                        Map.of("role", "user", "content", "You are a stylist. Choose 3 outfits (each must include either a top, bottom, or dress, plus shoes; bag and other accessories are optional) to suit" + answer + "from the following items. Ensure the colors match. Return a JsonArray with each outfit as a JsonObject. Use the following naming convention for the item IDs in the JSON: \"top\", \"bottom\", \"dress\", \"shoes\", \"accessory\". Each outfit should also include an explanation for your choices. Only include the IDs and explanation in the JSON: " + clothes
+                        Map.of("role", "user", "content", "You are a stylist. Choose 3 " + ((style.isEmpty())?  "" : style + " ")  + "outfits (each must include either a top, bottom, or dress, plus shoes; bag and other accessories are optional) to suit" + occasion + "from the following items. Ensure the colors match. Return a JsonArray with each outfit as a JsonObject. Use the following naming convention for the item IDs in the JSON: \"top\", \"bottom\", \"dress\", \"shoes\", \"accessory\". Each outfit should also include an (short) explanation for your choices. Only include the IDs and explanation in the JSON: " + clothes
                         )
                 )
 
@@ -354,7 +345,7 @@ public class Persist {
             JsonObject firstChoice = choicesArray.get(0).getAsJsonObject();
             String content = firstChoice.getAsJsonObject("message").get("content").getAsString();
 
-            String cleanedContent = content.replaceAll("```json\\n|\\n```", "").replace("\\n", "\n");
+            String cleanedContent = content.replaceAll("json\\n|\\n", "").replace("\\n", "\n");
 
             try {
                 JsonArray outfitSuggestionsArray = JsonParser.parseString(cleanedContent).getAsJsonArray();
@@ -363,7 +354,7 @@ public class Persist {
                     List<OutfitItem> itemsOfSuggestion = new LinkedList<>();
                     JsonObject outfitSuggestionJson = outfitSuggestionsArray.get(i).getAsJsonObject();
                     String explanation = outfitSuggestionJson.get("explanation").getAsString();
-                    itemsOfSuggestion = parseOutfitJson(outfitSuggestionJson);
+                    itemsOfSuggestion = parseOutfitJson(outfitSuggestionJson,userId);
                     OutfitSuggestion outfitSuggestion = new OutfitSuggestion(itemsOfSuggestion, explanation);
                     outfitSuggestions.add(outfitSuggestion);
                 }
@@ -383,9 +374,22 @@ public class Persist {
         return outfitSuggestions;
     }
 
-    public List<OutfitItem> getOutfits() {
-        return outfits;
+    @NotNull
+    private static JsonObject getJsonObject(OutfitItem outfitItem) {
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("id", outfitItem.getId());
+        jsonObject.addProperty("type", outfitItem.getType());
+        jsonObject.addProperty("style", outfitItem.getStyle());
+        jsonObject.addProperty("color", outfitItem.getColor());
+        jsonObject.addProperty("season", outfitItem.getSeason());
+        jsonObject.addProperty("season", outfitItem.getSeason());
+        jsonObject.addProperty("description", outfitItem.getDescription());
+        return jsonObject;
     }
+
+//    public List<OutfitItem> getOutfits() {
+//        return outfits;
+//    }
 
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, int userId) {
         System.out.println("userId: " + userId);
