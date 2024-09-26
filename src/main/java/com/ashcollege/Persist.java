@@ -292,7 +292,7 @@ public class Persist {
 //        }
 //    }
 
-    public List<OutfitSuggestion> sendOutfitRequest(String occasion,int userId, String style) {
+    public List<OutfitSuggestion> sendOutfitRequest(String occasion, int userId, String style) {
         Gson gson = new Gson();
         JsonArray jsonArray = new JsonArray();
 
@@ -308,19 +308,16 @@ public class Persist {
                 "model", "gpt-4o",
                 "messages", List.of(
                         Map.of("role", "system", "content", "You are a helpful assistant."),
-                        Map.of("role", "user", "content", "You are a stylist. Choose 3 " + ((style.isEmpty())?  "" : style + " ")  + "outfits (each must include either a top, bottom, or dress, plus shoes; bag and other accessories are optional) to suit" + occasion + "from the following items. Ensure the colors match. Return a JsonArray with each outfit as a JsonObject. Use the following naming convention for the item IDs in the JSON: \"top\", \"bottom\", \"dress\", \"shoes\", \"accessory\". Each outfit should also include an (short) explanation for your choices. Only include the IDs and explanation in the JSON: " + clothes
+                        Map.of("role", "user", "content", "You are a stylist. Choose 3 " + ((style.isEmpty())?  "" : style + " ")  + "outfits (each must include either a top, bottom, or dress, plus shoes; bag and other accessories are optional) to suit" + occasion + " from the following items. Ensure the colors match. Return a JsonArray with each outfit as a JsonObject. Use the following naming convention for the item IDs in the JSON: \"top\", \"bottom\", \"dress\", \"shoes\", \"accessory\". Each outfit should also include an (short) explanation for your choices. Only include the IDs and explanation in the JSON: " + clothes
                         )
                 )
-
-                // old request in case we want to use it:
-                //You are a stylist, choose a look (shirt and pants/skirt or dresses/suits, you can add accessories and suitable shoes) for a party from the following items. Note that the colors match, return JSON with only their ID:" + clothes
         ));
 
-// Print the request payload to debug
+        // Print the request payload to debug
         System.out.println("Request Payload:");
         System.out.println(requestPayload);
 
-// Send request to OpenAI API
+        // Send request to OpenAI API
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(OPENAI_API_URL))
@@ -338,7 +335,12 @@ public class Persist {
 
             // Step 1: Parse the main JSON response
             String responseBody = response.body();
-            JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+
+            // הוספת ניקוי התגובה
+            String cleanedResponseBody = responseBody.replace("```json", "").replace("```", "").trim();
+
+            // פרש את ה-JSON המנוקה
+            JsonObject jsonResponse = JsonParser.parseString(cleanedResponseBody).getAsJsonObject();
             JsonArray choicesArray = jsonResponse.getAsJsonArray("choices");
 
             // Get the content string from the big Json inside choicesArray
@@ -354,7 +356,7 @@ public class Persist {
                     List<OutfitItem> itemsOfSuggestion = new LinkedList<>();
                     JsonObject outfitSuggestionJson = outfitSuggestionsArray.get(i).getAsJsonObject();
                     String explanation = outfitSuggestionJson.get("explanation").getAsString();
-                    itemsOfSuggestion = parseOutfitJson(outfitSuggestionJson,userId);
+                    itemsOfSuggestion = parseOutfitJson(outfitSuggestionJson, userId);
                     OutfitSuggestion outfitSuggestion = new OutfitSuggestion(itemsOfSuggestion, explanation);
                     outfitSuggestions.add(outfitSuggestion);
                 }
@@ -373,6 +375,7 @@ public class Persist {
         }
         return outfitSuggestions;
     }
+
 
     @NotNull
     private static JsonObject getJsonObject(OutfitItem outfitItem) {
@@ -393,12 +396,6 @@ public class Persist {
 
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, int userId) {
         System.out.println("userId: " + userId);
-        String imageURL = null;
-        try {
-            imageURL = uploadImageToImgur(file);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
         try {
             // שמירה לקובץ זמני
             File tempFile = convertMultipartFileToFile(file);
@@ -423,6 +420,12 @@ public class Persist {
             System.out.println("Season: " + season);
             System.out.println("Description: " + description);
 
+            String imageURL = null;
+            try {
+                imageURL = uploadImageToImgur(file);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
 
             String name = imageURL.substring(imageURL.lastIndexOf('/') + 1, imageURL.lastIndexOf('.'));
             OutfitItem outfitItem = new OutfitItem(getUserById(userId),name,type,style,color,season,description);
@@ -518,8 +521,12 @@ public class Persist {
         messageObject.put("role", "user");
 
         JSONArray contentArray = new JSONArray();
-        contentArray.put(new JSONObject().put("type", "text").put("text", "return JSON with the features for the item in the image: type(shirt,pants...),style(elegant...),color,season and (short) description"));
+//        contentArray.put(new JSONObject().put("type", "text").put("text", "return JSON with the features for the item in the image: type(shirt,pants...),style(elegant...),color,season and (short) description"));
+        contentArray.put(new JSONObject()
+                .put("type", "text")
+                .put("text", "Return JSON with the features for the item in the image: type (shirt, pants...), style (elegant...), color in one word (if dominant, otherwise 'colorful'), season (summer, winter, fall, spring; if suitable for multiple seasons, separate with '/') and a short description."));
         contentArray.put(new JSONObject().put("type", "image_url").put("image_url", new JSONObject().put("url", dataUrl)));
+
 
         messageObject.put("content", contentArray);
         messagesArray.put(messageObject);
