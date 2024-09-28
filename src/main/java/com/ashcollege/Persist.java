@@ -9,6 +9,7 @@ import com.ashcollege.responses.UserResponse;
 import okhttp3.*;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -40,6 +41,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.function.Consumer;
 
 import static com.ashcollege.utils.Errors.*;
 
@@ -125,6 +127,16 @@ public class Persist {
         return user;
     }
 
+    public User getUserByUsername(String username) {
+        User user = null;
+        user = (User) this.sessionFactory.getCurrentSession().createQuery(
+                        "FROM User WHERE username = :username")
+                .setParameter("username", username)
+                .setMaxResults(1)
+                .uniqueResult();
+        return user;
+    }
+
     public OutfitItem getOutfitById(int id) {
         OutfitItem outfitItem = null;
         outfitItem = (OutfitItem) this.sessionFactory.getCurrentSession().createQuery(
@@ -180,6 +192,45 @@ public class Persist {
             basicResponse = new UserResponse(true, null, user);
         }
         return basicResponse;
+    }
+
+    public BasicResponse modifyUser(String username, String newEmail, String newPassword, String newUsername) {
+        User user = getUserByUsername(username);
+        BasicResponse basicResponse;
+
+        try {
+            if (newEmail != null && !newEmail.isEmpty()) {
+                if (isEmailCorrect(newEmail)) {
+                    if (isEmailAvailable(newEmail)) {
+                        user.setEmail(newEmail);
+                    } else {
+                        return basicResponse = new BasicResponse(false, EMAIL_ALREADY_IN_USE);
+                    }
+                } else {
+                    return basicResponse = new BasicResponse(false, ERROR_EMAIL_FORMAT);
+                }
+            }
+
+            if (newPassword != null && !newPassword.isEmpty()) {
+                if (isPasswordStrong(newPassword)) {
+                    user.setPassword(newPassword);
+                } else {
+                    return basicResponse = new BasicResponse(false, ERROR_WEAK_PASSWORD);
+                }
+            }
+
+            if (newUsername != null && !newUsername.isEmpty()) {
+                if (isUsernameAvailable(newUsername)) {
+                    user.setUsername(newUsername);
+                } else {
+                    return basicResponse = new BasicResponse(false, ERROR_SIGN_UP_USERNAME_TAKEN);
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return basicResponse = new UserResponse(true, null, user);
     }
 
     public BasicResponse signUp(String username, String email, String password) {

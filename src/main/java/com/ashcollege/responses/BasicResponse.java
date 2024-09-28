@@ -1,5 +1,7 @@
 package com.ashcollege.responses;
 
+import com.ashcollege.entities.User;
+
 public class BasicResponse {
     private boolean success;
     private Integer errorCode;
@@ -24,4 +26,5 @@ public class BasicResponse {
     public void setErrorCode(Integer errorCode) {
         this.errorCode = errorCode;
     }
+
 }

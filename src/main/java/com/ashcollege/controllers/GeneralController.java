@@ -3,6 +3,7 @@ package com.ashcollege.controllers;
 import com.ashcollege.Persist;
 import com.ashcollege.entities.OutfitItem;
 import com.ashcollege.entities.OutfitSuggestion;
+import com.ashcollege.entities.User;
 import com.ashcollege.responses.BasicResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -123,5 +124,10 @@ public class GeneralController {
         } else {
             return ResponseEntity.badRequest().body("Image not found");
         }
+    }
+
+    @RequestMapping(value = "/modify-user", method = {RequestMethod.GET, RequestMethod.POST})
+    public BasicResponse getModifiedUser(String username, String newEmail, String newPassword, String newUsername) {
+        return persist.modifyUser(username, newEmail, newPassword, newUsername);
     }
 }
