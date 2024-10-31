@@ -242,7 +242,7 @@ public class Persist {
                         if (isUsernameAvailable(username)) {
                             if (isPasswordStrong(password)) {
                                 if (isEmailAvailable(email)) {
-                                    System.out.println("here");
+//                                    System.out.println("here");
                                     User user = new User(username, email, password);
                                     save(user);
                                     return new UserResponse(true, null, user);
@@ -572,7 +572,6 @@ public class Persist {
         messageObject.put("role", "user");
 
         JSONArray contentArray = new JSONArray();
-//        contentArray.put(new JSONObject().put("type", "text").put("text", "return JSON with the features for the item in the image: type(shirt,pants...),style(elegant...),color,season and (short) description"));
         contentArray.put(new JSONObject()
                 .put("type", "text")
                 .put("text", "Return JSON with the features for the item in the image: type (shirt, pants...), style (elegant...), color in one word (if dominant, otherwise 'colorful'), season (summer, winter, fall, spring; if suitable for multiple seasons, separate with '/') and a short description."));
